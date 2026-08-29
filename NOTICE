@@ -1,0 +1,25 @@
+provider-agnostic-skill-creator
+
+Copyright 2026 Cody Rayment
+
+This product includes software developed by Anthropic, PBC
+( skill-creator plugin from claude-plugins-official ).
+
+The following files are derived from Anthropic's skill-creator and
+remain licensed under the Apache License, Version 2.0:
+
+  .agents/skills/skill-creator/scripts/
+  .agents/skills/skill-creator/eval-viewer/
+  .agents/skills/skill-creator/assets/eval_review.html
+  .agents/skills/skill-creator/agents/
+  .agents/skills/skill-creator/references/schemas.md
+  LICENSE (Apache License 2.0 text from upstream)
+
+Modifications and provider-agnostic layers (SKILL.md rewrite,
+worker-contracts.md, playbooks/, README.md, IMPLEMENTATION.md)
+Copyright 2026 Cody Rayment, licensed under Apache License 2.0.
+
+See LICENSE for the full Apache License 2.0 terms.
+
+Upstream source (reference):
+  https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator
