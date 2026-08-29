@@ -39,17 +39,17 @@ the standard library.
 
 ## Quick start
 
-1. Activate the `skill-creator` skill in your agent.
+1. Activate the `provider-agnostic-skill-creator` skill in your agent.
 2. Draft a skill and `evals/evals.json`.
 3. Follow the eval loop in `SKILL.md` — spawn executors per `references/worker-contracts.md`.
 4. Read your platform playbook if needed:
-   - [Claude Code](.agents/skills/skill-creator/references/playbooks/claude-code.md)
-   - [Cursor](.agents/skills/skill-creator/references/playbooks/cursor.md)
+   - [Claude Code](.agents/skills/provider-agnostic-skill-creator/references/playbooks/claude-code.md)
+   - [Cursor](.agents/skills/provider-agnostic-skill-creator/references/playbooks/cursor.md)
 
 ## Repository layout
 
 ```
-.agents/skills/skill-creator/   # Agent Skills spec skill package
+.agents/skills/provider-agnostic-skill-creator/   # Agent Skills spec skill package
 ├── SKILL.md
 ├── agents/                     # Grader, comparator, analyzer prompts
 ├── references/
