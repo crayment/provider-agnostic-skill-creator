@@ -1,75 +1,77 @@
 # Implementation status
 
-Stubs, gaps, and planned work for provider-agnostic-skill-creator v0.1.0.
+Current architecture and known gaps for `provider-agnostic-skill-creator`.
 
-## Done (v0.1.0)
+## Implemented
 
-- [x] Provider-neutral `SKILL.md` eval loop
-- [x] `references/worker-contracts.md` — executor, grader, analyzer, comparator contracts
-- [x] Playbooks: `claude-code.md`, `cursor.md`
-- [x] Upstream scripts copied: `aggregate_benchmark`, `run_eval`, `run_loop`, `improve_description`, `generate_report`, `package_skill`, `quick_validate`, `utils`
-- [x] Upstream agents: `grader.md`, `comparator.md`, `analyzer.md`
-- [x] Upstream eval viewer: `generate_review.py`, `viewer.html`, `assets/eval_review.html`
-- [x] Schemas reference from upstream
+- Provider-neutral `SKILL.md` with the complete Anthropic eval loop
+- Worker contracts for executors, graders, benchmark analysis, and blind comparison
+- Thin Claude Code and Cursor playbooks
+- Upstream grader, comparator, analyzer, description optimization, packaging,
+  schemas, templates, and viewer assets
+- Claude Code trigger evaluation and description optimization through the
+  upstream `claude -p` scripts
+- Python package marker for `python -m scripts.*`
+- PyYAML dependency declaration for `quick_validate.py`
 
-## Stubbed / TODO
+## 2026-08-29 fidelity review fixes
 
-### Harness runner CLI (`scripts/runner.py`) — **not yet implemented**
+See [COMPARISON.md](COMPARISON.md) for the complete audit.
 
-Planned thin CLI for unavoidable automation only:
+- Restored the full continuous sequence in `SKILL.md`: metadata, same-turn
+  paired executors, outputs, timing, grader, aggregate, analyst, viewer,
+  feedback, improvement, larger-scale rerun, and packaging.
+- Made grader-first evaluation explicit. Deterministic assertion scripts
+  support the grader; they do not replace it.
+- Restored description-optimization details: pushy descriptions, realistic
+  positive and near-miss queries, human eval-set review, 60/40 holdout,
+  repeated trigger runs, and held-out selection.
+- Kept Cursor spawn API parameters out of both `SKILL.md` and its thin
+  playbook; the playbook points to the environment's orchestration skills.
+- Corrected the Claude Code `run_eval` example: the script writes JSON to
+  stdout and has no `--output` flag.
+- Updated `aggregate_benchmark.py` to accept the direct layout documented by
+  upstream as well as repeated `run-N` layouts, preserve with-skill/baseline
+  ordering, carry eval names, infer run counts, and label token proxies.
+- Updated the viewer to find eval metadata for nested repeated-run layouts.
 
-```bash
-# Proposed interface (stub)
-python -m scripts.runner aggregate <iteration-dir> --skill-name foo
-python -m scripts.runner viewer <iteration-dir> --static out.html
-python -m scripts.runner validate <skill-dir>
-```
+## Deliberately not merged from the refactor fork
 
-Today: invoke submodules directly (`python -m scripts.aggregate_benchmark`, `python eval-viewer/generate_review.py`).
+- `scripts/harness.py` and experimental Cursor headless trigger parsing:
+  no stable Cursor skill-injection/trigger signal has been demonstrated.
+- Orchestrator-generated trigger jobs: handing the tested skill path to a
+  worker can itself induce a read, so it is not equivalent to observing
+  organic triggering.
+- Provider API parameter blocks: the environment's orchestration skill is the
+  source of truth for those mechanics.
 
-**TODO:** Add `runner.py` subcommands that delegate to existing scripts with stable flags; no LLM trigger simulation.
+## Known gaps
 
-### Cursor `cursor-agent` headless executor — **documented gap**
+- Cursor completion notifications may not include token counts. Aggregation
+  labels `output_chars` when it must use that proxy.
+- Automated description optimization remains Claude Code-first because
+  `run_eval.py` and `improve_description.py` rely on real `claude -p` events.
+- No CI fixture currently exercises aggregation and static viewer generation.
+- Additional provider playbooks should be added only for non-substitutable
+  mechanics, not generic worker spawning.
 
-`references/playbooks/cursor.md` notes experimental headless runs. No verified CLI contract checked in.
+## Architecture decisions
 
-**TODO:** Spike cursor-agent flags for executor workers; add playbook section or `scripts/cursor_exec.sh` if stable.
-
-### Token capture on Cursor — **honest gap**
-
-Worker contract allows null `total_tokens`. Aggregation should tolerate missing token stats.
-
-**TODO:** Verify `aggregate_benchmark.py` handles absent tokens gracefully; add test fixture.
-
-### Playbooks for other providers — **future**
-
-- OpenAI Codex / other CLIs — add only when non-substitutable automation exists
-- Generic "no subagents" fallback — partially covered in claude-code playbook (Claude.ai section)
-
-### CI / packaging — **future**
-
-**TODO:** GitHub Action: validate skill frontmatter, smoke-test `aggregate_benchmark` on fixture workspace.
-
-### Test fixtures — **future**
-
-**TODO:** Minimal `fixtures/sample-workspace/iteration-1/` with grading.json files for aggregation + viewer smoke tests.
-
-### `scripts/__init__.py`
-
-**TODO:** Add empty `__init__.py` if `python -m scripts.*` fails in some environments (verify).
-
-## Architecture decisions (log)
-
-1. **Contracts over adapters** — SKILL.md never names Cursor Task params or Claude tool names.
-2. **Playbooks are thin** — Cursor playbook points to Cody's subagent skills rather than duplicating them.
-3. **Scripts stay CLI-bound** — `run_eval` / `run_loop` require real `claude -p`; not replaced by orchestrator YES/NO guessing.
-4. **Skill path** — `.agents/skills/skill-creator/` per Agent Skills spec and Cody install conventions.
-5. **Upstream compatibility** — artifact schemas unchanged so viewer and aggregation work with existing iteration directories.
+1. **Contracts over adapters** — `SKILL.md` defines roles and artifacts, not
+   Task API parameters or product-specific tool names.
+2. **Thin playbooks** — platform docs cover only timing, CLI, viewer, and
+   packaging gaps.
+3. **Real trigger evidence** — description evals do not use an LLM's yes/no
+   guess as a substitute for invocation events.
+4. **Claude Code remains first-class** — upstream `run_eval` and `run_loop`
+   behavior is retained with a dedicated playbook.
+5. **Intent over byte identity** — copied files stay unchanged unless a
+   concrete integration mismatch prevents Anthropic's documented loop.
 
 ## Contributing
 
 When adding a playbook:
 
-1. Confirm the behavior cannot live in the user's orchestration skill.
-2. Keep SKILL.md neutral — link to the playbook instead.
-3. Extend `worker-contracts.md` only when the artifact contract changes for all platforms.
+1. Confirm the behavior cannot live in the environment's orchestration skill.
+2. Keep `SKILL.md` neutral and link to the playbook.
+3. Extend worker contracts only when the artifact contract changes everywhere.

@@ -4,6 +4,9 @@ Platform-neutral roles and artifact layout for the skill-creator eval harness.
 
 Orchestrators spawn workers through **their environment's subagent API** (see playbooks). These contracts define what each worker receives and must produce so grading, aggregation, and the HTML viewer work unchanged.
 
+The required order is: metadata → parallel executors → outputs and timing →
+grader → aggregate → analyst → viewer → feedback → improvement.
+
 ## Workspace layout
 
 ```
@@ -30,13 +33,20 @@ Orchestrators spawn workers through **their environment's subagent API** (see pl
 
 Legacy names `without_skill` and `with_skill` are required for the benchmark viewer's configuration grouping. When improving an existing skill, baseline runs may live under `old_skill/` instead of `without_skill/` — aggregation accepts both.
 
+For variance measurement, a configuration may contain `run-1/`, `run-2/`, …
+directories, each with the same run structure. The aggregation and viewer tools
+also accept the direct single-run layout shown above.
+
 ## Orchestrator responsibilities
 
 1. Load the environment's subagent orchestration skill before spawning.
-2. Launch all executor workers for an iteration in one parallel batch when possible.
+2. When parallel workers are available, launch every with-skill and baseline
+   executor for the iteration in one orchestration turn. Do not run one side
+   first and return later for the other.
 3. Write `eval_metadata.json` before or when runs start.
 4. Capture timing from worker completion notifications into each run's `timing.json`.
-5. After executors finish, spawn grader workers (or grade inline).
+5. After executors finish, use grader workers (grade inline only when workers
+   are unavailable).
 6. Run `scripts.aggregate_benchmark`, append analyzer notes, launch `eval-viewer/generate_review.py`.
 7. Maintain a roster of worker IDs if the platform supports resume (orchestrator-only relay).
 
@@ -109,6 +119,10 @@ Do not grade yourself. Do not modify the skill under test unless the eval explic
 
 Read `agents/grader.md` in this skill package.
 
+The grader remains the primary evaluator. For assertions that can be checked
+programmatically, run a deterministic script and cite its output as evidence;
+do not substitute scripts for the complete grader pass.
+
 ### Required output
 
 `grading.json` with `expectations[]` using exactly `text`, `passed`, `evidence`, plus `summary` — see `references/schemas.md`.
@@ -163,6 +177,15 @@ Written by orchestrator:
 ```
 
 Assertions populate after drafting (Step 2 of eval run).
+
+---
+
+## Fallback when child workers are unavailable
+
+Run prompts sequentially as a non-independent sanity check. Skip baselines,
+quantitative benchmarking, and blind comparison because the same agent has
+seen both the skill and the eval design. Use the static viewer or inline human
+review, and label the limitation explicitly.
 
 ---
 

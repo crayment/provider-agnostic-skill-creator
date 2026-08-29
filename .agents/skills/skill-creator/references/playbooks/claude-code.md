@@ -49,7 +49,7 @@ python -m scripts.run_eval \
   --eval-set <json> \
   --skill-path <path> \
   --model <model-id> \
-  --output <results.json>
+  > <results.json>
 ```
 
 ## Packaging and present_files

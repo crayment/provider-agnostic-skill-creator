@@ -32,7 +32,10 @@ ln -s "$(pwd)/provider-agnostic-skill-creator/.agents/skills/skill-creator" \
 
 Or copy `.agents/skills/skill-creator/` into your skills directory.
 
-**Requirements:** Python 3.10+ for harness scripts. Subagent-capable agent environment recommended for the full parallel eval loop. PyYAML optional for `quick_validate.py`.
+**Requirements:** Python 3.10+ for harness scripts. A subagent-capable agent
+environment is recommended for the full parallel eval loop. Install
+`requirements.txt` when using `quick_validate.py`; the remaining scripts use
+the standard library.
 
 ## Quick start
 
@@ -57,6 +60,8 @@ Or copy `.agents/skills/skill-creator/` into your skills directory.
 ├── eval-viewer/                # HTML review UI
 └── assets/
 IMPLEMENTATION.md               # Stubs and roadmap
+COMPARISON.md                   # Upstream/fork fidelity audit
+requirements.txt                # quick_validate dependency
 LICENSE                         # Apache-2.0 (upstream)
 NOTICE                          # Anthropic attribution
 ```
@@ -69,3 +74,4 @@ Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE). Derived from
 
 - [Agent Skills specification](https://agentskills.io/specification)
 - Upstream: Anthropic `claude-plugins-official` / `skill-creator` plugin
+- [Detailed upstream and fork comparison](COMPARISON.md)

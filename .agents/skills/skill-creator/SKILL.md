@@ -32,12 +32,16 @@ Most harnesses with subagents should work out of the box if they follow the cont
 ## High-level loop
 
 ```
-Draft skill → evals.json → parallel with-skill + baseline workers
-  → grader → aggregate_benchmark → HTML viewer → human feedback
-  → improve skill → (optional) description optimization → (optional) blind comparison
+Draft skill → evals.json → eval_metadata.json
+  → parallel with-skill + baseline executors → outputs + timing
+  → grader → aggregate_benchmark → analyst → HTML viewer
+  → human feedback → improve → repeat and expand → package
 ```
 
-Your job is to figure out where the user is in this loop and help them progress. If they want to skip formal evals and iterate conversationally, that is fine.
+Description optimization and blind comparison are optional tracks after the
+core loop is working. Your job is to figure out where the user is in this
+process and help them progress. If they want to skip formal evals and iterate
+conversationally, that is fine.
 
 ## Communicating with the user
 
@@ -65,7 +69,9 @@ Ask about edge cases, formats, examples, success criteria, and dependencies befo
 Per the [Agent Skills specification](https://agentskills.io/specification):
 
 - **name**: Skill identifier (kebab-case, matches directory name)
-- **description**: Primary triggering mechanism — what it does **and** when to use it. Descriptions tend to undertrigger; be slightly pushy about relevant contexts.
+- **description**: Primary triggering mechanism — what it does **and** when to
+  use it. Models tend to undertrigger skills, so make descriptions pushy:
+  name relevant contexts even when users may not explicitly name the skill.
 - **compatibility**: Only if the skill has real environment requirements
 
 See the skill writing guide below and `references/schemas.md` for eval data structures.
@@ -122,7 +128,11 @@ See `references/schemas.md` for the full schema.
 
 ## Running and evaluating test cases
 
-This section is one continuous sequence. Put results in `<skill-name>-workspace/` as a sibling to the skill directory. Organize by iteration (`iteration-1/`, `iteration-2/`, …) and eval directories (`eval-<name>/`). Create directories as you go.
+This section is one continuous sequence: do not stop mid-loop or hand the work
+to a different testing skill. Put results in `<skill-name>-workspace/` as a
+sibling to the skill directory. Organize by iteration (`iteration-1/`,
+`iteration-2/`, …) and descriptive eval directories (`eval-<name>/`). Create
+directories as you go.
 
 ### Step 0: Load orchestration + contracts
 
@@ -141,7 +151,11 @@ For each eval, launch two executor workers:
 
 Each worker must write artifacts per `references/worker-contracts.md` (outputs, transcript, metrics, timing).
 
-Write `eval_metadata.json` per eval directory (assertions may start empty). Use descriptive eval names, not only `eval-0`.
+When improving an existing skill, snapshot the pre-edit version before making
+changes so the baseline is independent of the current draft.
+
+Write `eval_metadata.json` per eval directory (assertions may start empty). Use
+descriptive eval names, not only `eval-0`.
 
 ### Step 2: Draft assertions while runs execute
 
@@ -159,13 +173,19 @@ If your platform does not expose tokens (see `references/playbooks/cursor.md`), 
 
 Once all executor runs finish:
 
-1. **Grade** — spawn a grader worker (or grade inline) using `agents/grader.md`. Save `grading.json` per run. The `expectations` array must use fields `text`, `passed`, and `evidence`.
+1. **Grade** — use a grader worker with `agents/grader.md` as the primary
+   evaluator (grade inline only when workers are unavailable). Do not replace
+   the grader with scripts alone. For objectively programmatic assertions,
+   have the grader run or reuse a script and cite its result. Save
+   `grading.json` per run. The `expectations` array must use fields `text`,
+   `passed`, and `evidence`.
 
 2. **Aggregate** — from this skill's directory:
    ```bash
    python -m scripts.aggregate_benchmark <workspace>/iteration-N --skill-name <name>
    ```
    Produces `benchmark.json` and `benchmark.md`. See `references/schemas.md` for exact field names.
+   Keep each `with_skill` configuration before its baseline counterpart.
 
 3. **Analyze** — read benchmark data; surface patterns per `agents/analyzer.md` (benchmark notes section). Append notes to `benchmark.json`.
 
@@ -202,6 +222,8 @@ When the user is done, read `feedback.json`. Empty feedback means acceptable. Fo
 3. Launch viewer with `--previous-workspace`
 4. Wait for user review
 5. Repeat until satisfied, feedback is empty, or progress stalls
+6. Once the small set is stable, expand it and rerun at larger scale to catch
+   overfitting before packaging
 
 ---
 
@@ -217,7 +239,8 @@ The `description` frontmatter field drives skill triggering. After the skill con
 
 ### Step 1: Generate trigger eval queries
 
-Create ~20 queries (mix of should-trigger and should-not-trigger). Save as JSON array:
+Create about 20 realistic queries: 8–10 should-trigger cases covering varied
+phrasings and 8–10 tricky should-not-trigger near misses. Save as a JSON array:
 
 ```json
 [
@@ -226,11 +249,16 @@ Create ~20 queries (mix of should-trigger and should-not-trigger). Save as JSON 
 ]
 ```
 
-Favor realistic, detailed prompts and tricky near-miss negatives — not obviously irrelevant negatives.
+Favor realistic, detailed prompts and tricky near-miss negatives — not
+obviously irrelevant negatives. Use substantive tasks that would benefit from
+a skill; trivial one-step requests often will not trigger even with a good
+description.
 
 ### Step 2: Review with user
 
-Use `assets/eval_review.html`: replace placeholders, open in browser, user exports edited set.
+Use `assets/eval_review.html`: replace its eval, skill-name, and description
+placeholders; open it for the user; and use the edited set they export. Do not
+optimize against an unreviewed eval set.
 
 ### Step 3: Run optimization loop
 
@@ -247,6 +275,11 @@ python -m scripts.run_loop \
 
 Report progress while it runs. Output includes `best_description` selected on held-out test score.
 
+By default the script uses a stratified 60% train / 40% held-out split and
+runs each query three times. It proposes changes from train failures, evaluates
+each candidate on both splits, and selects by held-out score to resist
+overfitting.
+
 ### Step 4: Apply result
 
 Update SKILL.md frontmatter; show before/after and scores.
@@ -255,13 +288,15 @@ Update SKILL.md frontmatter; show before/after and scores.
 
 ## Packaging
 
-If your environment supports skill packaging:
+At the end of the loop, package the finished skill:
 
 ```bash
 python -m scripts.package_skill <path/to/skill-folder>
 ```
 
-See `references/playbooks/claude-code.md` for `present_files` integration when available.
+Present the `.skill` file when the environment has a file-presentation tool;
+otherwise report its path. See `references/playbooks/claude-code.md` for
+Claude Code integration.
 
 ---
 
@@ -282,8 +317,8 @@ See `references/playbooks/claude-code.md` for `present_files` integration when a
 ## Core loop (summary)
 
 - Draft or edit the skill
-- Run with-skill and baseline executors on test prompts
-- Grade, aggregate, show results in the HTML viewer
-- Improve from human feedback
+- Run with-skill and baseline executors together; capture outputs and timing
+- Grade with a grader, aggregate, analyze, and show results in the HTML viewer
+- Improve from human feedback; repeat and expand the eval set
 - Optionally optimize description and run blind comparisons
-- Package when done
+- Package the final skill

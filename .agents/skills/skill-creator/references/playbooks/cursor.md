@@ -1,52 +1,43 @@
 # Playbook: Cursor
 
-Thin platform notes for running the skill-creator harness in Cursor IDE agents.
+Thin notes for the non-substitutable Cursor gaps in the skill-creator loop.
+Shared roles, prompts, and paths live in
+[worker-contracts.md](../worker-contracts.md).
 
-## Subagent orchestration (required reading)
+## Before parallel evals
 
-Before spawning workers, load:
+Load the environment's current orchestration skills before spawning:
 
-1. **`cursor-subagents`** — spawn/resume mechanics, full-power defaults, ownership rules
-2. **`agent-teams-cursor-v2`** — frame → assign → warm up → align → build → handoff; one roster
+- `cursor-subagents` for spawn, resume, ownership, and autonomy conventions
+- `agent-teams-cursor-v2` for roster, parallel work, relay, and handoff
 
-These skills replace hardcoded Task API parameters in the main skill-creator SKILL.md. Follow their roster, relay, and parallel-warmup patterns when coordinating executor and grader workers.
+Those skills define the API mechanics. This playbook does not duplicate Task
+parameters. Use the executor and grader contracts, and launch every with-skill
+and baseline executor in the same orchestration turn.
 
-### Spawning executor workers
+## Timing and token gaps
 
-Use the worker contract prompts from `references/worker-contracts.md`. Typical Cursor settings (adjust per task, do not treat as universal law):
+Worker completion notifications may omit `total_tokens`. Process each
+completion immediately:
 
-- `subagent_type: "generalPurpose"` for executors and graders
-- `run_in_background: true` when launching the full parallel eval batch
-- `environment: "local"` unless cloud isolation is explicitly needed
+- write reported duration or measured wall time to `timing.json`
+- set `timing_source` to `worker_notification` or `wall_clock`
+- leave `total_tokens` null when unavailable
+- retain `metrics.json` `output_chars` as an explicitly labeled size proxy
 
-First prompt to each child should state role, slice, done-when criteria, and paths — children start with clean context.
+Do not skip timing merely because tokens are unavailable.
 
-### Parallel batch
+## Description optimization gap
 
-Launch all with-skill **and** baseline executors in the same orchestration turn (`run_in_background: true` for each), matching upstream harness timing.
+The bundled `run_eval.py` and `run_loop.py` use real `claude -p` trigger
+events. Cursor does not currently provide an equivalent verified injection and
+trigger signal in this repository.
 
-## Honest gaps
-
-| Capability | Cursor status | Workaround |
-|------------|---------------|------------|
-| Token counts in Task completion | **Not consistently exposed** to parent agent | Record `duration_ms` if available; leave `total_tokens` null; note in benchmark metadata |
-| `run_loop` / description optimization | Requires **`claude -p` CLI** | Use Claude Code playbook on a machine with CLI, or stub/manual description iteration |
-| `present_files` | Cursor-specific / unavailable | Use `package_skill.py`; tell user the output path |
-| Timing notification shape | May differ from Claude Code Task API | Capture whatever completion metadata exists; document in `timing.json` |
-
-## Optional: headless investigation
-
-Experimental: `cursor-agent` CLI for non-interactive runs may suit CI-style executor workers. Not required for the default harness — subagents in IDE are the primary path.
-
-TODO: document stable CLI flags once cursor-agent headless contract is verified (see IMPLEMENTATION.md).
-
-## Resume and roster
-
-Track child agent IDs on the orchestrator roster. Only the spawning agent may resume a child. Use relay for cross-slice questions per agent-teams-cursor-v2.
+Use the Claude Code playbook for the automated optimization loop, or run a
+manual, explicitly labeled Cursor experiment. Do not replace invocation
+evidence with an orchestrator's yes/no guess.
 
 ## Viewer
-
-Same as other platforms:
 
 ```bash
 python eval-viewer/generate_review.py <workspace>/iteration-N \
@@ -54,10 +45,14 @@ python eval-viewer/generate_review.py <workspace>/iteration-N \
   --benchmark <workspace>/iteration-N/benchmark.json
 ```
 
-Use `--static` in remote/cloud environments without a local browser.
+Use `--static <output.html>` when the environment has no display. The static
+viewer downloads `feedback.json`; copy it into the iteration directory.
 
-## My Machines / Cloud Agents
+## Packaging
 
-Cloud agents on a Mac (My Machines) are a **separate system** from IDE subagents — see Cody's `running-agents` pattern doc. Use My Machines when Cody needs phone-visible runs or local tool access outside the current chat; use IDE subagents for parallel eval executors in-session.
+```bash
+python -m scripts.package_skill /path/to/skill-folder
+```
 
-Do not conflate Cloud Agent API follow-ups with Task resume IDs.
+Return the generated `.skill` path when no file-presentation tool is
+available.
