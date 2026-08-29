@@ -14,7 +14,17 @@ Example:
 
 The script supports two directory layouts:
 
-    Workspace layout (from skill-creator iterations):
+    Direct single-run workspace layout (from SKILL.md):
+    <benchmark_dir>/
+    └── eval-N/
+        ├── with_skill/
+        │   ├── outputs/
+        │   ├── grading.json
+        │   └── timing.json
+        └── without_skill/
+            └── (same structure)
+
+    Repeated-run variance layout:
     <benchmark_dir>/
     └── eval-N/
         ├── with_skill/
@@ -24,14 +34,7 @@ The script supports two directory layouts:
             ├── run-1/grading.json
             └── run-2/grading.json
 
-    Legacy layout (with runs/ subdirectory):
-    <benchmark_dir>/
-    └── runs/
-        └── eval-N/
-            ├── with_skill/
-            │   └── run-1/grading.json
-            └── without_skill/
-                └── run-1/grading.json
+Either layout may also live under <benchmark_dir>/runs/ for compatibility.
 """
 
 import argparse
@@ -64,6 +67,38 @@ def calculate_stats(values: list[float]) -> dict:
     }
 
 
+CONFIG_ORDER = {
+    "with_skill": 0,
+    "new_skill": 0,
+    "without_skill": 1,
+    "old_skill": 1,
+}
+
+
+def config_sort_key(path: Path) -> tuple[int, str]:
+    """Keep the skill-under-test before its baseline for delta calculation."""
+    return CONFIG_ORDER.get(path.name, 2), path.name
+
+
+def discover_run_dirs(config_dir: Path) -> list[tuple[int, Path]]:
+    """Support direct single runs and nested run-N variance layouts."""
+    nested = sorted(config_dir.glob("run-*"))
+    if nested:
+        discovered = []
+        for index, run_dir in enumerate(nested, start=1):
+            try:
+                run_number = int(run_dir.name.removeprefix("run-"))
+            except ValueError:
+                run_number = index
+            discovered.append((run_number, run_dir))
+        return discovered
+
+    if (config_dir / "outputs").is_dir() or (config_dir / "grading.json").exists():
+        return [(1, config_dir)]
+
+    return []
+
+
 def load_run_results(benchmark_dir: Path) -> dict:
     """
     Load all run results from a benchmark directory.
@@ -85,10 +120,13 @@ def load_run_results(benchmark_dir: Path) -> dict:
 
     for eval_idx, eval_dir in enumerate(sorted(search_dir.glob("eval-*"))):
         metadata_path = eval_dir / "eval_metadata.json"
+        eval_name = eval_dir.name
         if metadata_path.exists():
             try:
                 with open(metadata_path) as mf:
-                    eval_id = json.load(mf).get("eval_id", eval_idx)
+                    metadata = json.load(mf)
+                    eval_id = metadata.get("eval_id", eval_idx)
+                    eval_name = metadata.get("eval_name", eval_name)
             except (json.JSONDecodeError, OSError):
                 eval_id = eval_idx
         else:
@@ -97,19 +135,18 @@ def load_run_results(benchmark_dir: Path) -> dict:
             except ValueError:
                 eval_id = eval_idx
 
-        # Discover config directories dynamically rather than hardcoding names
-        for config_dir in sorted(eval_dir.iterdir()):
+        # Discover config directories dynamically while preserving primary/baseline order.
+        for config_dir in sorted(eval_dir.iterdir(), key=config_sort_key):
             if not config_dir.is_dir():
                 continue
-            # Skip non-config directories (inputs, outputs, etc.)
-            if not list(config_dir.glob("run-*")):
+            run_dirs = discover_run_dirs(config_dir)
+            if not run_dirs:
                 continue
             config = config_dir.name
             if config not in results:
                 results[config] = []
 
-            for run_dir in sorted(config_dir.glob("run-*")):
-                run_number = int(run_dir.name.split("-")[1])
+            for run_number, run_dir in run_dirs:
                 grading_file = run_dir / "grading.json"
 
                 if not grading_file.exists():
@@ -126,6 +163,7 @@ def load_run_results(benchmark_dir: Path) -> dict:
                 # Extract metrics
                 result = {
                     "eval_id": eval_id,
+                    "eval_name": eval_name,
                     "run_number": run_number,
                     "pass_rate": grading.get("summary", {}).get("pass_rate", 0.0),
                     "passed": grading.get("summary", {}).get("passed", 0),
@@ -133,24 +171,33 @@ def load_run_results(benchmark_dir: Path) -> dict:
                     "total": grading.get("summary", {}).get("total", 0),
                 }
 
-                # Extract timing — check grading.json first, then sibling timing.json
+                # Extract timing — check grading.json and supplement from timing.json.
                 timing = grading.get("timing", {})
                 result["time_seconds"] = timing.get("total_duration_seconds", 0.0)
                 timing_file = run_dir / "timing.json"
-                if result["time_seconds"] == 0.0 and timing_file.exists():
+                result["tokens"] = None
+                result["tokens_source"] = "missing"
+                if timing_file.exists():
                     try:
                         with open(timing_file) as tf:
                             timing_data = json.load(tf)
-                        result["time_seconds"] = timing_data.get("total_duration_seconds", 0.0)
-                        result["tokens"] = timing_data.get("total_tokens", 0)
+                        if result["time_seconds"] == 0.0:
+                            result["time_seconds"] = timing_data.get("total_duration_seconds", 0.0)
+                        if timing_data.get("total_tokens") is not None:
+                            result["tokens"] = timing_data["total_tokens"]
+                            result["tokens_source"] = timing_data.get(
+                                "timing_source", "timing.json"
+                            )
                     except json.JSONDecodeError:
                         pass
 
                 # Extract metrics if available
                 metrics = grading.get("execution_metrics", {})
                 result["tool_calls"] = metrics.get("total_tool_calls", 0)
-                if not result.get("tokens"):
+                if result["tokens"] is None:
                     result["tokens"] = metrics.get("output_chars", 0)
+                    if metrics.get("output_chars") is not None:
+                        result["tokens_source"] = "output_chars_proxy"
                 result["errors"] = metrics.get("errors_encountered", 0)
 
                 # Extract expectations — viewer requires fields: text, passed, evidence
@@ -237,6 +284,7 @@ def generate_benchmark(benchmark_dir: Path, skill_name: str = "", skill_path: st
         for result in results[config]:
             runs.append({
                 "eval_id": result["eval_id"],
+                "eval_name": result["eval_name"],
                 "configuration": config,
                 "run_number": result["run_number"],
                 "result": {
@@ -246,6 +294,7 @@ def generate_benchmark(benchmark_dir: Path, skill_name: str = "", skill_path: st
                     "total": result["total"],
                     "time_seconds": result["time_seconds"],
                     "tokens": result.get("tokens", 0),
+                    "tokens_source": result.get("tokens_source", "missing"),
                     "tool_calls": result.get("tool_calls", 0),
                     "errors": result.get("errors", 0)
                 },
@@ -260,6 +309,33 @@ def generate_benchmark(benchmark_dir: Path, skill_name: str = "", skill_path: st
         for r in config
     ))
 
+    run_counts: dict[tuple[object, str], int] = {}
+    for config, config_results in results.items():
+        for result in config_results:
+            key = (result["eval_id"], config)
+            run_counts[key] = run_counts.get(key, 0) + 1
+
+    proxy_count = sum(
+        1
+        for config_results in results.values()
+        for result in config_results
+        if result.get("tokens_source") == "output_chars_proxy"
+    )
+    missing_count = sum(
+        1
+        for config_results in results.values()
+        for result in config_results
+        if result.get("tokens_source") == "missing"
+    )
+    notes = []
+    if proxy_count:
+        notes.append(
+            f"Token counts were unavailable for {proxy_count} run(s); "
+            "the tokens column uses output_chars as a labeled proxy for those runs."
+        )
+    if missing_count:
+        notes.append(f"Token data was unavailable for {missing_count} run(s).")
+
     benchmark = {
         "metadata": {
             "skill_name": skill_name or "<skill-name>",
@@ -268,11 +344,11 @@ def generate_benchmark(benchmark_dir: Path, skill_name: str = "", skill_path: st
             "analyzer_model": "<model-name>",
             "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "evals_run": eval_ids,
-            "runs_per_configuration": 3
+            "runs_per_configuration": max(run_counts.values(), default=0)
         },
         "runs": runs,
         "run_summary": run_summary,
-        "notes": []  # To be filled by analyzer
+        "notes": notes  # Analyzer appends observations after aggregation.
     }
 
     return benchmark

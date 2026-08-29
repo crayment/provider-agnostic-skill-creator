@@ -245,6 +245,7 @@ Output from Benchmark mode. Located at `benchmarks/<timestamp>/benchmark.json`.
         "total": 7,
         "time_seconds": 42.5,
         "tokens": 3800,
+        "tokens_source": "worker_notification",
         "tool_calls": 18,
         "errors": 0
       },
@@ -296,7 +297,11 @@ Output from Benchmark mode. Located at `benchmarks/<timestamp>/benchmark.json`.
   - `eval_name`: Human-readable eval name (used as section header in the viewer)
   - `configuration`: Must be `"with_skill"` or `"without_skill"` (the viewer uses this exact string for grouping and color coding)
   - `run_number`: Integer run number (1, 2, 3...)
-  - `result`: Nested object with `pass_rate`, `passed`, `total`, `time_seconds`, `tokens`, `errors`
+  - `result`: Nested object with `pass_rate`, `passed`, `total`,
+    `time_seconds`, `tokens`, `tokens_source`, and `errors`
+  - `tokens_source`: Source of the numeric token column. Canonical aggregation
+    uses `output_chars_proxy` and adds a benchmark note when true token counts
+    are unavailable.
 - `run_summary`: Statistical aggregates per configuration
   - `with_skill` / `without_skill`: Each contains `pass_rate`, `time_seconds`, `tokens` objects with `mean` and `stddev` fields
   - `delta`: Difference strings like `"+0.50"`, `"+13.0"`, `"+1700"`

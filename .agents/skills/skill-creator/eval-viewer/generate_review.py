@@ -82,22 +82,33 @@ def _find_runs_recursive(root: Path, current: Path, runs: list[dict]) -> None:
             _find_runs_recursive(root, child, runs)
 
 
+def find_ancestor_file(start: Path, root: Path, filename: str) -> Path | None:
+    """Find metadata on the run or an ancestor without escaping the workspace."""
+    current = start
+    while current == root or root in current.parents:
+        candidate = current / filename
+        if candidate.exists():
+            return candidate
+        if current == root:
+            break
+        current = current.parent
+    return None
+
+
 def build_run(root: Path, run_dir: Path) -> dict | None:
     """Build a run dict with prompt, outputs, and grading data."""
     prompt = ""
     eval_id = None
 
-    # Try eval_metadata.json
-    for candidate in [run_dir / "eval_metadata.json", run_dir.parent / "eval_metadata.json"]:
-        if candidate.exists():
-            try:
-                metadata = json.loads(candidate.read_text())
-                prompt = metadata.get("prompt", "")
-                eval_id = metadata.get("eval_id")
-            except (json.JSONDecodeError, OSError):
-                pass
-            if prompt:
-                break
+    # Repeated-run layouts put metadata above config/run-N directories.
+    metadata_path = find_ancestor_file(run_dir, root, "eval_metadata.json")
+    if metadata_path:
+        try:
+            metadata = json.loads(metadata_path.read_text())
+            prompt = metadata.get("prompt", "")
+            eval_id = metadata.get("eval_id")
+        except (json.JSONDecodeError, OSError):
+            pass
 
     # Fall back to transcript.md
     if not prompt:
