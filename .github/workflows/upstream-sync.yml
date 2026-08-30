@@ -1,0 +1,77 @@
+name: Upstream sync
+
+on:
+  schedule:
+    # Daily 14:00 UTC (~8am MT)
+    - cron: "0 14 * * *"
+  push:
+    branches: [main]
+    paths:
+      - ".agents/skills/provider-agnostic-skill-creator/**"
+      - "UPSTREAM_PIN.json"
+      - "scripts/**"
+      - ".github/workflows/upstream-sync.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    outputs:
+      needs_agent: ${{ steps.drift.outputs.needs_agent }}
+      needs_attention: ${{ steps.drift.outputs.needs_attention }}
+      upstream_moved: ${{ steps.drift.outputs.upstream_moved }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Upstream drift check
+        id: drift
+        run: |
+          set +e
+          python3 scripts/check_upstream_drift.py --github-output "$GITHUB_OUTPUT"
+          drift_exit=$?
+          echo "drift_exit=$drift_exit" >> "$GITHUB_OUTPUT"
+          set -e
+          if [[ "$drift_exit" -ne 0 && "$drift_exit" -ne 1 ]]; then
+            exit "$drift_exit"
+          fi
+
+      - name: Process fidelity check
+        run: python3 scripts/check_process_fidelity.py
+
+      - name: Upload drift report
+        uses: actions/upload-artifact@v4
+        with:
+          name: upstream-drift-report
+          path: upstream-drift-report.md
+
+      - name: Fail on upstream drift
+        if: steps.drift.outputs.needs_attention == 'true'
+        run: |
+          echo "::error::Upstream drift detected — see artifact upstream-drift-report"
+          exit 1
+
+  agent-review:
+    needs: drift
+    if: >-
+      always() &&
+      needs.drift.outputs.needs_agent == 'true' &&
+      (needs.drift.result == 'success' || needs.drift.result == 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: upstream-drift-report
+
+      - name: Trigger Cloud Agent upstream review
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: bash scripts/trigger_upstream_agent.sh
