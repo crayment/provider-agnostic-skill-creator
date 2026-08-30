@@ -1,16 +1,10 @@
+# Scheduled upstream drift check — not CI on every push/PR.
 name: Upstream sync
 
 on:
   schedule:
-    # Daily 14:00 UTC (~8am MT)
-    - cron: "0 14 * * *"
-  push:
-    branches: [main]
-    paths:
-      - ".agents/skills/provider-agnostic-skill-creator/**"
-      - "UPSTREAM_PIN.json"
-      - "scripts/**"
-      - ".github/workflows/upstream-sync.yml"
+    # Daily 14:17 UTC (~8:17am MT)
+    - cron: "17 14 * * *"
   workflow_dispatch:
 
 permissions:
