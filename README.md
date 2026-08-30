@@ -1,6 +1,8 @@
 # provider-agnostic-skill-creator
 
-A cross-platform fork of [Anthropic's official skill-creator](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator) eval harness, redesigned so the **skill instructions stay provider-neutral** and platform specifics live in **playbooks**.
+> **Unofficial port** of [Anthropic's skill-creator](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator/skills/skill-creator) — not affiliated with or endorsed by Anthropic. Canonical upstream is pinned in [`UPSTREAM_PIN.json`](UPSTREAM_PIN.json); [upstream-sync CI](.github/workflows/upstream-sync.yml) diffs vendor files daily and can launch a Cloud Agent review when upstream moves.
+
+A cross-platform fork of Anthropic's official skill-creator eval harness, redesigned so the **skill instructions stay provider-neutral** and platform specifics live in **playbooks**.
 
 ## Philosophy vs "harness adapter" forks
 
