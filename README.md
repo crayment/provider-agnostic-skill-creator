@@ -15,7 +15,7 @@ This project inverts that:
 | **`references/playbooks/`** | Only non-substitutable platform mechanics (CLI triggers, notification timing, known gaps) |
 | **`scripts/`** | Deterministic tooling — aggregation, HTML viewer, `claude -p` trigger evals |
 
-Before spawning workers, the orchestrator loads **its environment's subagent orchestration skill** (e.g. Cursor's `agent-teams-cursor-v2` + `cursor-subagents`, Claude Code's delegation conventions). The harness should work out of the box anywhere that honors the worker contracts.
+Before spawning workers, the orchestrator loads **its environment's subagent orchestration skills** (spawn mechanics, roster, parallel delegation — whatever your product documents). The harness should work out of the box anywhere that honors the worker contracts.
 
 Claude Code is a first-class target — not a legacy path — via `references/playbooks/claude-code.md` and the upstream `run_loop` / `run_eval` scripts.
 
@@ -26,11 +26,11 @@ Clone and link the skill per your agent's skill install convention:
 ```bash
 git clone https://github.com/crayment/provider-agnostic-skill-creator.git
 # Example: symlink into .agents/skills/
-ln -s "$(pwd)/provider-agnostic-skill-creator/.agents/skills/skill-creator" \
-  ~/.agents/skills/skill-creator
+ln -s "$(pwd)/provider-agnostic-skill-creator/.agents/skills/provider-agnostic-skill-creator" \
+  ~/.agents/skills/provider-agnostic-skill-creator
 ```
 
-Or copy `.agents/skills/skill-creator/` into your skills directory.
+Or copy `.agents/skills/provider-agnostic-skill-creator/` into your skills directory.
 
 **Requirements:** Python 3.10+ for harness scripts. A subagent-capable agent
 environment is recommended for the full parallel eval loop. Install

@@ -6,14 +6,12 @@ Shared roles, prompts, and paths live in
 
 ## Before parallel evals
 
-Load the environment's current orchestration skills before spawning:
-
-- `cursor-subagents` for spawn, resume, ownership, and autonomy conventions
-- `agent-teams-cursor-v2` for roster, parallel work, relay, and handoff
-
-Those skills define the API mechanics. This playbook does not duplicate Task
-parameters. Use the executor and grader contracts, and launch every with-skill
-and baseline executor in the same orchestration turn.
+Load the environment's current orchestration skills before spawning — whatever
+your install provides for subagent spawn/resume and for coordinating parallel
+workers (roster, relay, handoff). Read those skills for API mechanics; this
+playbook does not duplicate Task parameters. Use the executor and grader
+contracts, and launch every with-skill and baseline executor in the same
+orchestration turn.
 
 ## Timing and token gaps
 
