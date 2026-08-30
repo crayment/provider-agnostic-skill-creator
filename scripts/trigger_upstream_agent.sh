@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Launch a Cursor Cloud Agent to review upstream drift (report-only).
+# Launch a Cursor Cloud Agent to review upstream drift and open a PR when appropriate.
 #
-# Usage (CI):
+# Usage (scheduled job):
 #   CURSOR_API_KEY=... bash scripts/trigger_upstream_agent.sh
 #
 # Requires upstream-drift-report.md in the working directory (repo root).
@@ -62,7 +62,7 @@ payload = {
             "startingRef": os.environ["STARTING_REF"],
         }
     ],
-    "autoCreatePR": False,
+    "autoCreatePR": True,
     "skipReviewerRequest": True,
 }
 
