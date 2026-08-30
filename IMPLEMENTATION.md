@@ -13,9 +13,10 @@ Current architecture and known gaps for `provider-agnostic-skill-creator`.
   upstream `claude -p` scripts
 - Python package marker for `python -m scripts.*`
 - PyYAML dependency declaration for `quick_validate.py`
-- Upstream drift CI: pin in `UPSTREAM_PIN.json`, daily diff in
-  [`.github/workflows/upstream-sync.yml`](.github/workflows/upstream-sync.yml),
-  optional Cloud Agent review via `scripts/trigger_upstream_agent.sh`
+- Upstream drift tracking: pin in `UPSTREAM_PIN.json`, daily scheduled diff via
+  [`.github/workflows/upstream-sync.yml`](.github/workflows/upstream-sync.yml)
+  (cron sandbox — not CI on every push), Cloud Agent opens a PR on drift via
+  `scripts/trigger_upstream_agent.sh`
 
 ## 2026-08-29 fidelity review fixes
 
@@ -55,9 +56,8 @@ See [COMPARISON.md](COMPARISON.md) for the complete audit.
 - Automated description optimization remains Claude Code-first because
   `run_eval.py` and `improve_description.py` rely on real `claude -p` events.
 - No CI fixture currently exercises aggregation and static viewer generation.
-- Upstream drift CI fails when vendor-identical files diverge or upstream
-  moves; a Cloud Agent review is triggered for human-readable merge guidance
-  (report-only — no auto-merge).
+- Upstream drift job fails when vendor-identical files diverge or upstream
+  moves; a Cloud Agent opens a PR with merge guidance (human review required).
 - Additional provider playbooks should be added only for non-substitutable
   mechanics, not generic worker spawning.
 

@@ -1,6 +1,6 @@
 # provider-agnostic-skill-creator
 
-> **Unofficial port** of [Anthropic's skill-creator](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator/skills/skill-creator) — not affiliated with or endorsed by Anthropic. Canonical upstream is pinned in [`UPSTREAM_PIN.json`](UPSTREAM_PIN.json); [upstream-sync CI](.github/workflows/upstream-sync.yml) diffs vendor files daily and can launch a Cloud Agent review when upstream moves.
+> **Unofficial port** of [Anthropic's skill-creator](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator/skills/skill-creator) — not affiliated with or endorsed by Anthropic. Canonical upstream is pinned in [`UPSTREAM_PIN.json`](UPSTREAM_PIN.json). A **scheduled** [upstream-sync job](.github/workflows/upstream-sync.yml) (GitHub Actions cron — not CI on PRs) diffs vendor files daily and can launch a Cloud Agent that opens a PR when upstream drifts.
 
 A cross-platform fork of Anthropic's official skill-creator eval harness, redesigned so the **skill instructions stay provider-neutral** and platform specifics live in **playbooks**.
 
