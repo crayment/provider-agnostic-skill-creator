@@ -56,8 +56,10 @@ See [COMPARISON.md](COMPARISON.md) for the complete audit.
 - Automated description optimization remains Claude Code-first because
   `run_eval.py` and `improve_description.py` rely on real `claude -p` events.
 - No CI fixture currently exercises aggregation and static viewer generation.
-- Upstream drift job fails when vendor-identical files diverge or upstream
-  moves; a Cloud Agent opens a PR with merge guidance (human review required).
+- Upstream drift job fails when vendor-identical files diverge or the
+  skill-creator tree SHA changes; a Cloud Agent opens a PR with merge
+  guidance (human review required). Marketplace-only `main` movement does
+  not count as skill-creator drift.
 - Additional provider playbooks should be added only for non-substitutable
   mechanics, not generic worker spawning.
 
