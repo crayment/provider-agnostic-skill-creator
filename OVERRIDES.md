@@ -6,5 +6,6 @@ Files listed here are **not** expected to match upstream byte-for-byte. CI
 
 See `UPSTREAM_PIN.json` for the machine-readable list and pinned upstream commit.
 
-When upstream changes a file we patched, CI opens an agent review — do not
-blindly overwrite our fork with upstream.
+When the upstream skill-creator tree changes a file we patched, the scheduled
+job opens an agent review — do not blindly overwrite our fork with upstream.
+Marketplace-only commits on `main` are not skill-creator drift.
