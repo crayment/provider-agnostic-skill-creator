@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   drift:
@@ -69,4 +70,5 @@ jobs:
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           UPSTREAM_REVIEW_REF: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
         run: bash scripts/trigger_upstream_agent.sh
