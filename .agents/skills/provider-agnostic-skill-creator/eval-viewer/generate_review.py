@@ -129,13 +129,17 @@ def build_run(root: Path, run_dir: Path) -> dict | None:
 
     run_id = str(run_dir.relative_to(root)).replace("/", "-").replace("\\", "-")
 
-    # Collect output files
+    # Collect output files (recursive — eval outputs often live in subdirs)
     outputs_dir = run_dir / "outputs"
     output_files: list[dict] = []
     if outputs_dir.is_dir():
-        for f in sorted(outputs_dir.iterdir()):
-            if f.is_file() and f.name not in METADATA_FILES:
-                output_files.append(embed_file(f))
+        for f in sorted(outputs_dir.rglob("*")):
+            if not f.is_file() or f.name in METADATA_FILES:
+                continue
+            rel = f.relative_to(outputs_dir)
+            embedded = embed_file(f)
+            embedded["name"] = str(rel).replace("\\", "/")
+            output_files.append(embedded)
 
     # Load grading if present
     grading = None
