@@ -2,7 +2,7 @@
   "canonical": {
     "repo": "anthropics/claude-plugins-official",
     "branch": "main",
-    "commit": "0120fb83da5d7cdaa52dd11979690f2dc5f76052",
+    "commit": "85cce0381e7860082641b59d961a2b8c368b8b79",
     "skill_tree": "98a510d1cfef9f82c3b1eec200229ca68725e613",
     "skill_path": "plugins/skill-creator/skills/skill-creator",
     "url": "https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator/skills/skill-creator",
