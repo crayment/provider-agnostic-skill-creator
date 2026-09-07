@@ -16,7 +16,8 @@ PROMPT_TEMPLATE="${REPO_ROOT}/scripts/upstream_review_prompt.md"
 API_BASE="${CURSOR_API_BASE:-https://api.cursor.com}"
 REPO_URL="${UPSTREAM_REVIEW_REPO_URL:-https://github.com/crayment/provider-agnostic-skill-creator}"
 STARTING_REF="${UPSTREAM_REVIEW_REF:-main}"
-AGENT_NAME="${UPSTREAM_REVIEW_AGENT_NAME:-upstream skill-creator drift review}"
+# ⚡ = GitHub Actions (not 🤖 — that prefix is Mini LaunchAgent wakes).
+AGENT_NAME="${UPSTREAM_REVIEW_AGENT_NAME:-⚡ provider-agnostic-skill-creator}"
 
 if [[ -z "${CURSOR_API_KEY:-}" ]]; then
   echo "ERROR: CURSOR_API_KEY is not set" >&2
