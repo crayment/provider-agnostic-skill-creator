@@ -17,7 +17,8 @@ API_BASE="${CURSOR_API_BASE:-https://api.cursor.com}"
 REPO_URL="${UPSTREAM_REVIEW_REPO_URL:-https://github.com/crayment/provider-agnostic-skill-creator}"
 REPO_SLUG="${UPSTREAM_REVIEW_REPO_SLUG:-crayment/provider-agnostic-skill-creator}"
 STARTING_REF="${UPSTREAM_REVIEW_REF:-main}"
-AGENT_NAME="${UPSTREAM_REVIEW_AGENT_NAME:-upstream skill-creator drift review}"
+# ⚡ = GitHub Actions (not 🤖 — that prefix is Mini LaunchAgent wakes).
+AGENT_NAME="${UPSTREAM_REVIEW_AGENT_NAME:-⚡ provider-agnostic-skill-creator drift}"
 BRANCH_PREFIX="${UPSTREAM_REVIEW_BRANCH_PREFIX:-cursor/upstream-skill-creator-drift-review-}"
 
 # Reuse an already-open drift-review PR instead of stacking a new one every
