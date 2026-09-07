@@ -2,7 +2,8 @@
   "canonical": {
     "repo": "anthropics/claude-plugins-official",
     "branch": "main",
-    "commit": "ed404106fcd80ba98ecb7c851e531dcb626d13b7",
+    "commit": "85cce0381e7860082641b59d961a2b8c368b8b79",
+    "skill_tree": "98a510d1cfef9f82c3b1eec200229ca68725e613",
     "skill_path": "plugins/skill-creator/skills/skill-creator",
     "url": "https://github.com/anthropics/claude-plugins-official/tree/main/plugins/skill-creator/skills/skill-creator",
     "install_note": "Claude Code installs this via the skill-creator plugin marketplace. The public skills repo at anthropics/skills/skills/skill-creator is a sibling; we track the plugin path as canonical because it matches /plugin install."

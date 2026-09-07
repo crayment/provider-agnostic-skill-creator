@@ -15,9 +15,31 @@ REPORT="${REPO_ROOT}/upstream-drift-report.md"
 PROMPT_TEMPLATE="${REPO_ROOT}/scripts/upstream_review_prompt.md"
 API_BASE="${CURSOR_API_BASE:-https://api.cursor.com}"
 REPO_URL="${UPSTREAM_REVIEW_REPO_URL:-https://github.com/crayment/provider-agnostic-skill-creator}"
+REPO_SLUG="${UPSTREAM_REVIEW_REPO_SLUG:-crayment/provider-agnostic-skill-creator}"
 STARTING_REF="${UPSTREAM_REVIEW_REF:-main}"
 # ⚡ = GitHub Actions (not 🤖 — that prefix is Mini LaunchAgent wakes).
 AGENT_NAME="${UPSTREAM_REVIEW_AGENT_NAME:-⚡ provider-agnostic-skill-creator}"
+BRANCH_PREFIX="${UPSTREAM_REVIEW_BRANCH_PREFIX:-cursor/upstream-skill-creator-drift-review-}"
+
+# Reuse an already-open drift-review PR instead of stacking a new one every
+# time the scheduled job fires while a prior review is still unmerged.
+EXISTING_PR_URL=""
+if command -v gh >/dev/null 2>&1 && { [[ -n "${GH_TOKEN:-}" ]] || [[ -n "${GITHUB_TOKEN:-}" ]]; }; then
+  EXISTING_PR_URL="$(
+    gh pr list \
+      --repo "$REPO_SLUG" \
+      --state open \
+      --json headRefName,url \
+      --jq "[.[] | select(.headRefName | startswith(\"${BRANCH_PREFIX}\"))][0].url // \"\"" \
+      2>/dev/null || true
+  )"
+fi
+
+if [[ -n "$EXISTING_PR_URL" ]]; then
+  echo "Found existing open drift-review PR: $EXISTING_PR_URL — will update it instead of opening a new one."
+else
+  echo "No existing open drift-review PR found — will open a new one."
+fi
 
 if [[ -z "${CURSOR_API_KEY:-}" ]]; then
   echo "ERROR: CURSOR_API_KEY is not set" >&2
@@ -34,7 +56,7 @@ if [[ ! -f "$PROMPT_TEMPLATE" ]]; then
   exit 1
 fi
 
-export REPORT PROMPT_TEMPLATE API_BASE REPO_URL STARTING_REF AGENT_NAME
+export REPORT PROMPT_TEMPLATE API_BASE REPO_URL STARTING_REF AGENT_NAME EXISTING_PR_URL
 export CURSOR_API_KEY
 
 python3 - <<'PY'
@@ -48,24 +70,43 @@ from pathlib import Path
 
 report = Path(os.environ["REPORT"]).read_text()
 template = Path(os.environ["PROMPT_TEMPLATE"]).read_text()
-prompt = template.replace("{{DRIFT_REPORT}}", report)
+existing_pr_url = os.environ.get("EXISTING_PR_URL", "").strip()
+
+if existing_pr_url:
+    pr_mode_note = (
+        f"An open drift-review PR already exists ({existing_pr_url}). You are "
+        "resuming work on that same PR/branch — do not open a second PR."
+    )
+else:
+    pr_mode_note = (
+        "No open drift-review PR exists yet. `autoCreatePR` is enabled for "
+        "this run — your branch should become a new pull request when you finish."
+    )
+
+prompt = template.replace("{{DRIFT_REPORT}}", report).replace(
+    "{{PR_MODE_NOTE}}", pr_mode_note
+)
 
 api = os.environ["API_BASE"]
 key = os.environ["CURSOR_API_KEY"].encode()
 auth = "Basic " + base64.b64encode(key + b":").decode()
 
+repo_entry = {"url": os.environ["REPO_URL"]}
 payload = {
     "name": os.environ["AGENT_NAME"],
     "prompt": {"text": prompt},
-    "repos": [
-        {
-            "url": os.environ["REPO_URL"],
-            "startingRef": os.environ["STARTING_REF"],
-        }
-    ],
-    "autoCreatePR": True,
-    "skipReviewerRequest": True,
+    "repos": [repo_entry],
 }
+
+if existing_pr_url:
+    # Push new commits straight to the existing PR's branch instead of
+    # creating a sibling branch/PR for the same drift finding.
+    repo_entry["prUrl"] = existing_pr_url
+    payload["workOnCurrentBranch"] = True
+else:
+    repo_entry["startingRef"] = os.environ["STARTING_REF"]
+    payload["autoCreatePR"] = True
+    payload["skipReviewerRequest"] = True
 
 data = json.dumps(payload).encode()
 req = urllib.request.Request(
