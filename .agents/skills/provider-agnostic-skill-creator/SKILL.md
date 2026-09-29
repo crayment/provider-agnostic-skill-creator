@@ -324,3 +324,11 @@ Claude Code integration.
 - Improve from human feedback; repeat and expand the eval set
 - Optionally optimize description and run blind comparisons
 - Package the final skill
+
+## Before you finish
+
+If a worker contract, playbook, or harness script misled you, failed oddly, or
+needed discovery not covered here, write **one file** in `feedback/` — see
+[feedback/README.md](feedback/README.md). That inbox is for this skill, not the
+skill under test, and is separate from the workspace `feedback.json`. Do not
+edit this skill. Skip when the loop ran as written.

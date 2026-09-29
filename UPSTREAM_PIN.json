@@ -27,7 +27,7 @@
   "fork_patches": [
     {
       "path": "SKILL.md",
-      "reason": "Provider-neutral orchestration; playbooks and worker contracts."
+      "reason": "Provider-neutral orchestration; playbooks and worker contracts; Before you finish cue for the runtime feedback inbox."
     },
     {
       "path": "references/schemas.md",
@@ -49,6 +49,8 @@
   "fork_only": [
     "references/worker-contracts.md",
     "references/playbooks/claude-code.md",
-    "references/playbooks/cursor.md"
+    "references/playbooks/cursor.md",
+    "feedback/README.md",
+    "feedback/resolved/.gitkeep"
   ]
 }
